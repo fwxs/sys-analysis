@@ -9,3 +9,9 @@ to find the endpoint of the socket.
 # Version 1.0
 Returns TCP or UDP information about the provided socket.
 
+
+# dnsUtils.py
+Retrieves information about a provided domain.
+
+# Version 1.0
+Currently, only retrieves domain information.
