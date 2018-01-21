@@ -1,7 +1,23 @@
-"""
-An ARP spoofer implementation in pure python.
+#!/usr/bin/env python3
 
 """
+An ARP spoofer implementation in pure python.
+Copyright (C) 2017-2018  pacmanator
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see https://www.gnu.org/licenses/.
+"""
+
 import argparse
 import binascii
 import re
@@ -186,6 +202,7 @@ def spoof(iface, target1IP, srcIP, target2IP, intervals=30):
     @param intervals: Seconds to send the next packet (Default 30).
     """
     sock = None
+    target1MAC, target2MAC = None, None
 
     try:
         changeIPForwarding("1")
@@ -225,8 +242,10 @@ def spoof(iface, target1IP, srcIP, target2IP, intervals=30):
         print(genErr.with_traceback(), file=sys.stderr)
 
     finally:
-        restoreARP(target2MAC, target2IP, target1MAC, target1IP, sock)
-        restoreARP(target1MAC, target1IP, target2MAC, target2IP, sock)
+        if not ((target2MAC is None) and (target1MAC is None)):
+            restoreARP(target2MAC, target2IP, target1MAC, target1IP, sock)
+            restoreARP(target1MAC, target1IP, target2MAC, target2IP, sock)
+
         sock.close()
         sys.exit()
 
