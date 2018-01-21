@@ -27,10 +27,10 @@ import sys
 import time
 
 
-class EtherEncode:
+class EtherEncode(object):
     """ Creates an Ethernet frame. """
 
-    def __init__(self, dst=None, src=None, proto=0x0806):
+    def __init__(self, dst, src, proto=0x0806):
         """
         Sets the necesary values of the Ethernet frame.
         @param dst: Destination MAC Address.
@@ -52,8 +52,13 @@ class EtherEncode:
         return self._dst + self._src + self._proto
 
     def isValidMAC(self, mac):
-        """ Returns True if the MAC Address matches the pattern, otherwise, blows up. """
+        """
+            Returns True if the provided MAC address matches the form 'ff:ff:ff:ff:ff:ff',
+            otherwise, blows up.
+        """
+        # MAC address pattern.
         macRegx = "(([a-f]|[0-9]){1,2}:){1,5}([a-f]|[0-9]){1,2}"
+        # Compile regular expression
         regex = re.compile(macRegx)
 
         if re.fullmatch(regex, mac):
@@ -62,11 +67,12 @@ class EtherEncode:
         return False
 
     def encodeMAC(self, mac):
-        """ Encodes a valid MAC Address. """
+        """ Transforms a string MAC Address to it's bytes form. """
         if not self.isValidMAC(mac):
             print("Invalid MAC address:", mac, file=sys.stderr)
             sys.exit()
 
+        # Returns a 'bytes' MAC address (\xff\xff\xff\xff\xff\xff)
         return binascii.unhexlify(mac.replace(":", ""))
 
 
@@ -84,18 +90,24 @@ class ARPEncode(EtherEncode):
         @param dMAC: Destination MAC address.
         @param dIP: Destination IP address.
         """
-        self._sMAC = self.encodeMAC(sMAC) if not isinstance(sMAC, bytes) else sMAC
-        self._dMAC = self.encodeMAC(dMAC) if not isinstance(dMAC, bytes) else dMAC
-        self._sIP = socket.inet_aton(sIP)
-        self._dIP = socket.inet_aton(dIP)
+        # ARP packet first half.
         self._hwtype = hwtype
         self._pType = pType
         self._hwsize = hwsize
         self._psize = psize
         self._opcode = opcode
 
+        # If it's not a string Object, encode it.
+        self._sMAC = self.encodeMAC(sMAC) if not isinstance(sMAC, bytes) else sMAC
+        self._dMAC = self.encodeMAC(dMAC) if not isinstance(dMAC, bytes) else dMAC
+
+        # Encode the provided IP address to a bytes-like.
+        self._sIP = socket.inet_aton(sIP)
+        self._dIP = socket.inet_aton(dIP)
+
     def craftPacket(self):
         """ Creates the ARP packet section. """
+        # Create the first half of the ARP packet.
         up = struct.pack("!HHBBH", self._hwtype, self._pType, self._hwsize, self._psize, self._opcode)
         return up + self._sMAC + self._sIP + self._dMAC + self._dIP
 
@@ -108,8 +120,9 @@ def getInterfaceMAC(iface):
 
 
 def decodeMAC(rawMac):
-    """ Returns a readable MAC address.
-    @param rawMac: Encoded MAC Address.
+    """
+        Returns a readable MAC address.
+        @param rawMac: Bytes encoded MAC Address.
     """
     mac = binascii.hexlify(rawMac)
 
@@ -120,23 +133,36 @@ def decodeMAC(rawMac):
 
 
 def getHostMac(targetIP, iface, srcIP, sock=None):
-    """ Returns the MAC address of the provided host. """
+    """
+        Returns the MAC address of the provided host.
+        @param targetIP: IP address to get the MAC addres from.
+        @param iface: Interface to use.
+        @param srcIP: Source IP address.
+        @param sock: Socket to use, if it's None, create a new socket.
+    """
+    # Ethernet broadcast packet.
     eth = EtherEncode(dst="ff:ff:ff:ff:ff:ff", src=getInterfaceMAC(iface))
-    dstMAC = eth.encodeMAC("00:00:00:00:00:00")
     ethPacket = eth.craftPacket()
 
+    # Encode ARP broadcast MAC address.
+    dstMAC = eth.encodeMAC("00:00:00:00:00:00")
+    # Create ARP packet.
     arpPacket = ARPEncode(eth._src, srcIP, dstMAC, targetIP).craftPacket()
+
     packet = ethPacket + arpPacket
 
     try:
         if sock is None:
+            # Create a RAW socket.
             sock = socket.socket(socket.PF_PACKET, socket.SOCK_RAW, socket.IPPROTO_RAW)
-        sock.bind((iface, 0x0806))
+            # Bind the specifed interface to the ARP protocol.
+            sock.bind((iface, 0x0806))
 
         while True:
             sock.send(packet)
             recv = sock.recv(1024)
 
+            # Check if the ARP opcode is a 'reply' type and if it matches with the provided IP address.
             if (recv[20:22] == b"\x00\x02") and (recv[0x1c:0x20] == socket.inet_aton(targetIP)):
                 return recv[0x16:0x1c]
 
@@ -150,6 +176,10 @@ def getHostMac(targetIP, iface, srcIP, sock=None):
 
 
 def canChangeStatus(status):
+    """
+        Check the status of the ip_forward file. If it's different than the provided status, return True.
+        @param status: 1 or 0.
+    """
     with open("/proc/sys/net/ipv4/ip_forward") as file:
         if file.readline() != (status+'\n'):
             print(file.readline())
@@ -178,6 +208,11 @@ def changeIPForwarding(status):
 def restoreARP(srcMAC, srcIP, targetMAC, targetIP, sock=None):
     """
         Sends the ARP Original values.
+        @param srcMAC: Source MAC address.
+        @param srcIP: Source IP address.
+        @param targetMAC: Destination MAC address.
+        @param targetIP: Destination IP address.
+        @param sock: Socket to use.
     """
     print("\033[1;36m[*]\033[0;0m Restoring ARP.")
     try:
@@ -194,12 +229,13 @@ def restoreARP(srcMAC, srcIP, targetMAC, targetIP, sock=None):
 
 
 def spoof(iface, target1IP, srcIP, target2IP, intervals=30):
-    """ Spoofs an IP Address with your MAC address.
-    @param iface: Interface to use.
-    @param target1IP: Destination IP address.
-    @param srcIP: Source IP address.
-    @param target2IP: IP to spoof.
-    @param intervals: Seconds to send the next packet (Default 30).
+    """
+    Spoofs an IP Address with your MAC address.
+        @param iface: Interface to use.
+        @param target1IP: Destination IP address.
+        @param srcIP: Source IP address.
+        @param target2IP: IP to spoof.
+        @param intervals: Seconds to send the next packet (Default 30).
     """
     sock = None
     target1MAC, target2MAC = None, None
