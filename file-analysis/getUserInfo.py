@@ -9,7 +9,7 @@ __email__ = "mrpacmanator@gmail.com"
 __version__ = "v1.0"
 
 """
-    OUI-lookup python script.
+    Get information from a *nix user.
 
     Copyright (C) 2018 pacmanator
 
