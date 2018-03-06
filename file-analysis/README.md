@@ -1,7 +1,7 @@
 # file-analysis
 
 This folder contains a set of tools to retrieve information from some **\*nix** files, like the _passwd_ file, 
-the _shadow_ file and the file descriptors associated with some _PID_.
+the _shadow_ file, the file descriptors associated with some _PID_ and the memory map of a process.
 
 # fdInfo.py
 
@@ -65,4 +65,20 @@ $ getUserInfo.py [user]
   [+] Login name: xxxx    Home directory: xxxxxxx
     [-] User ID: dddd -----> Group ID: dddd
     [-] Shell: xxxxxxxxxx
+```
+
+# procMemMapper.py
+
+Retrieve information of all the memory regions that a process has mapped.
+
+## usage
+
+```
+$ procMemMapper.py [pid]
+[+] File: [Type of file]
+  [-] Address space: 0xaabbccddeeff -------------> 0x001122334455
+  [-] Permissions: [read, write, private (Copy on Write)]
+  [-] File offset: 0x00112233
+  [-] Device: sdxx OR Memory
+  [-] Inode: dddddd OR BSS (uninitialized data)
 ```
