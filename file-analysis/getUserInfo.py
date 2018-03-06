@@ -65,7 +65,7 @@ def get_shadow_date(date_change):
         return None
     
     # Turn the seconds to days.
-    t = time.gmtime((date_change * 3600) * 24)
+    t = time.gmtime((int(date_change) * 3600) * 24)
     
     # Return the date in a MM/DD/YYYY format.
     return "{0:02d}/{1:02d}/{2}".format(t.tm_mon, t.tm_mday, t.tm_year)
