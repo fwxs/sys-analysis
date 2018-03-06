@@ -4,11 +4,31 @@ import re
 import sys
 
 
+__author__ = "pacmanator"
+__email__ = "mrpacmanator@gmail.com"
+__version__ = "v1.0"
+
+"""
+    Get information of a process' memory map.
+
+    Copyright (C) 2018 pacmanator
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 def get_device(maj_min):
     """
-    Get the device name, using the 'major' and 'minor' device number.
-    :param maj_min: Major and minor device number.
-    :return: Return the device name.
+        Get the device name, using the 'major' and 'minor' device number.
+        @param maj_min: Major and minor device number.
+        :return: Return the device name.
     """
     major, minor = maj_min.split(":")
     with open("/proc/diskstats") as diskFile:
@@ -21,9 +41,9 @@ def get_device(maj_min):
 
 def get_permissions(perm):
     """
-    Gets an encoded version of the process permissions and returns a human readable version of them.
-    :param perm: Process permissions.
-    :return: A readable output of the process permissions.
+        Gets an encoded version of the process permissions and returns a human readable version of them.
+        @param perm: Process permissions.
+        :return: A readable output of the process permissions.
     """
     l = list()
     permissions = {"r": "read ",
@@ -42,9 +62,9 @@ def get_permissions(perm):
 
 def get_address_space(address):
     """
-    Gets the process address range.
-    :param address: /proc/PID/maps address space.
-    :return: The process address range.
+        Gets the process address range.
+        @param address: /proc/PID/maps address space.
+        :return: The process address range.
     """
     a = address.split("-")
     return "\033[1;32m0x{0}\033[0;0m {1:->8}> \033[1;32m0x{2}\033[0;0m".format(a[0], "", a[1])
@@ -52,18 +72,18 @@ def get_address_space(address):
 
 def get_inode(inode):
     """
-    Returns the inode number of the file opened by the process.
-    If it's 0, it's an uninitialized data.
-    :param inode: inode number
-    :return: File inode number or BSS.
+        Returns the inode number of the file opened by the process.
+        If it's 0, it's an uninitialized data.
+        @param inode: inode number
+        return: File inode number or BSS.
     """
-    return "BSS (uninitialized data)" if inode == "0" else "\033[0;34m{}\033[0;0m".format(inode)
+    return "BSS (uninitialized data)" if inode == "0" else "\033[0;36m{}\033[0;0m".format(inode)
 
 
 def process_entries(data):
     """
-    Parses the /proc/PID/maps file and returns information of the process memory map.
-    :param data: Information to parse.
+        Parses the /proc/PID/maps file and returns information of the process memory map.
+        @param data: Information to parse.
     """
     pseudo_path_regx = re.compile("\[([a-z]*)|:([0-9]*|[a-z]*)\]")
     device = "Memory"
@@ -104,9 +124,8 @@ def process_entries(data):
 
 def read_map_file(proc_map_file):
     """
-    Prints information about the process maps file.
-    :param proc_map_file: Path to the process maps file.
-    :return:
+        Prints information about the process maps file.
+        @param proc_map_file: Path to the process maps file.
     """
     with open(proc_map_file) as map_file:
         for row in map_file.readlines():
