@@ -58,14 +58,17 @@ def usage():
 
 def get_shadow_date(date_change):
     """
-        Turns the 'shadow' file date seconds to a ctime date.
+        Turns the 'shadow' file date days to a UTC date.
         @param date_change: The date in seconds.
     """
-    date = None
-    if date_change != '':
-        date = time.ctime((int(date_change) * 24) * 3600)
+    if date_change == '':
+        return None
     
-    return date
+    # Turn the seconds to days.
+    t = time.gmtime((date_change * 3600) * 24)
+    
+    # Return the date in a MM/DD/YYYY format.
+    return "{0:02d}/{1:02d}/{2}".format(t.tm_mon, t.tm_mday, t.tm_year)
 
 
 def get_user_shadow_info(username):
@@ -90,13 +93,15 @@ def get_user_shadow_info(username):
                 print("\t[-] Last password change: {0}".format(get_shadow_date(user_data[2])))
                 print("\t[-] Minimum password age: {0}".format(get_shadow_date(user_data[3])))
                 print("\t[-] Maximum password age: {0}".format(get_shadow_date(user_data[4])))
-                print("\t[-] Password warning: {0} days".format(user_data[5]))
+                
+                if user_data[6] != "":
+                    print("\t[-] Password warning: {0} days".format(user_data[5]))
 
                 if user_data[6] != "":
-                    print("[-] Password inactivity: {0} days".format(user_data[6]))
+                    print("\t[-] Password inactivity: {0} days".format(user_data[6]))
 
                 if user_data[7] != "":
-                    print("[-] Account expiration date: {0}".format(user_data[7]))
+                    print("\t[-] Account expiration date: {0}".format(user_data[7]))
 
 
 def get_user_passwd_info(username):
