@@ -6,7 +6,7 @@ import time
 
 __author__ = "pacmanator"
 __email__ = "mrpacmanator@gmail.com"
-__version__ = "v1.0"
+__version__ = "v1.1"
 
 """
     Get information from a *nix user.
@@ -61,7 +61,11 @@ def get_shadow_date(date_change):
         Turns the 'shadow' file date seconds to a ctime date.
         @param date_change: The date in seconds.
     """
-    return time.ctime((date_change * 24) * 3600)
+    date = None
+    if date_change != '':
+        date = time.ctime((int(date_change) * 24) * 3600)
+    
+    return date
 
 
 def get_user_shadow_info(username):
@@ -77,12 +81,15 @@ def get_user_shadow_info(username):
 
             if user_data[0] == username:
                 print("[+] Login name: {0}".format(username))
+                
+                if user_data[1] != '':
+                    Password(user_data[1])
+                else:
+                    print("\t[!] User {0} doesn't have a password.".format(username))
 
-                Password(user_data[1])
-
-                print("\t[-] Last password change: {0}".format(get_shadow_date(int(user_data[2]))))
-                print("\t[-] Minimum password age: {0}".format(get_shadow_date(int(user_data[3]))))
-                print("\t[-] Maximum password age: {0}".format(get_shadow_date(int(user_data[4]))))
+                print("\t[-] Last password change: {0}".format(get_shadow_date(user_data[2])))
+                print("\t[-] Minimum password age: {0}".format(get_shadow_date(user_data[3])))
+                print("\t[-] Maximum password age: {0}".format(get_shadow_date(user_data[4])))
                 print("\t[-] Password warning: {0} days".format(user_data[5]))
 
                 if user_data[6] != "":
