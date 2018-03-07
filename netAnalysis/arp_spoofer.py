@@ -155,12 +155,10 @@ def getHostMac(targetIP, iface, srcIP, sock=None):
         if sock is None:
             # Create a RAW socket.
             sock = socket.socket(socket.PF_PACKET, socket.SOCK_RAW, socket.IPPROTO_RAW)
-            # Bind the specifed interface to the ARP protocol.
-            sock.bind((iface, 0x0806))
 
         while True:
             sock.send(packet)
-            recv = sock.recv(1024)
+            recv = sock.recv(1500)
 
             # Check if the ARP opcode is a 'reply' type and if it matches with the provided IP address.
             if (recv[20:22] == b"\x00\x02") and (recv[0x1c:0x20] == socket.inet_aton(targetIP)):
@@ -244,6 +242,8 @@ def spoof(iface, target1IP, srcIP, target2IP, intervals=30):
         changeIPForwarding("1")
         sock = socket.socket(socket.PF_PACKET, socket.SOCK_RAW, socket.IPPROTO_RAW)
 
+        sock.bind((iface, 0x0806))
+
         srcMAC = getInterfaceMAC(iface)
 
         print("\033[1;32m[*]\033[0;0m Asking who-has ", target1IP)
@@ -275,7 +275,7 @@ def spoof(iface, target1IP, srcIP, target2IP, intervals=30):
         print("\n\033[1;31m[!]\033[0;0m User requested exit.\n")
 
     except Exception as genErr:
-        print(genErr.with_traceback(), file=sys.stderr)
+        print(genErr, file=sys.stderr)
 
     finally:
         if not ((target2MAC is None) and (target1MAC is None)):
