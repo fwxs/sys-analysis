@@ -3,11 +3,28 @@ import os
 import sys
 
 
-class FileSocket:
-    """
-    Parse TCP, UDP or RAW socket information about the provided PID file.
-    """
+__author__ = "pacmanator"
+__email__ = "mrpacmanator@gmail.com"
+__version__ = "v1.0"
 
+"""
+    Parse TCP, UDP socket information of the provided PID.
+
+    Copyright (C) 2018 pacmanator
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+class FileSocket:
     def __init__(self, pid):
         self.pid = pid
         self._ino = None
