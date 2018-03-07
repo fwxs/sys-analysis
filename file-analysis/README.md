@@ -71,7 +71,7 @@ $ getUserInfo.py [user]
 
 Retrieve information of all the memory regions that a process has mapped.
 
-## usage
+## Usage
 
 ```
 $ procMemMapper.py [pid]
@@ -81,4 +81,19 @@ $ procMemMapper.py [pid]
   [-] File offset: 0x00112233
   [-] Device: sdxx OR Memory
   [-] Inode: dddddd OR BSS (uninitialized data)
+```
+
+
+# getProcSocketInfo.py
+
+Return network information of a process.
+
+## Usage
+
+```
+$ getProcSocketInfo.py [pid]
+
+[*] Process name: xxxxxxx PID: dddd    UID: dddd   Inode: dddd
+  [{(TCP6, TCP), (UDP6, UDP), (UDPLITE6, UDPLITE)}] <Source>:<Port> ----------> <Destination>:<Port> ({Established, Listenning})
+
 ```
