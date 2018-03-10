@@ -86,14 +86,35 @@ $ procMemMapper.py [pid]
 
 # getProcSocketInfo.py
 
-Return network information of a process.
+Return network information of a process
 
 ## Usage
+
+If the pid is provided, the script will return network information related to that process, otherwise,
+it'll return network information related to all the found _PIDs_.
 
 ```
 $ getProcSocketInfo.py [pid]
 
 [*] Process name: xxxxxxx PID: dddd    UID: dddd   Inode: dddd
-  [{(TCP6, TCP), (UDP6, UDP), (UDPLITE6, UDPLITE)}] <Source>:<Port> ----------> <Destination>:<Port> ({Established, Listenning})
+  [{(TCP6, TCP), (UDP6, UDP), (UDPLITE6, UDPLITE)}] <Source>:<Port> ----------> <Destination>:<Port> ({Established, Listenning, Unconnected})
 
+```
+
+_Recursive_
+
+```
+$ getProcSocketInfo.py [pid]
+
+[*] Process name: xxxxxxx PID: dddd    UID: dddd   Inode: dddd
+  [{(TCP6, TCP), (UDP6, UDP), (UDPLITE6, UDPLITE)}] <Source>:<Port> ----------> <Destination>:<Port> ({Established, Listenning, Unconnected})
+
+[*] Process name: xxxxxxx PID: dddd    UID: dddd   Inode: dddd
+  [{(TCP6, TCP), (UDP6, UDP), (UDPLITE6, UDPLITE)}] <Source>:<Port> ----------> <Destination>:<Port> ({Established, Listenning, Unconnected})
+
+[*] Process name: xxxxxxx PID: dddd    UID: dddd   Inode: dddd
+  [{(TCP6, TCP), (UDP6, UDP), (UDPLITE6, UDPLITE)}] <Source>:<Port> ----------> <Destination>:<Port> ({Established, Listenning, Unconnected})
+
+...
+  ...
 ```
