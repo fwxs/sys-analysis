@@ -1,11 +1,12 @@
 #! /usr/bin/env python
 import os
+import re
 import sys
 
 
 __author__ = "pacmanator"
 __email__ = "mrpacmanator@gmail.com"
-__version__ = "v1.0"
+__version__ = "v1.1"
 
 """
     Parse TCP, UDP socket information of the provided PID.
@@ -30,6 +31,7 @@ class FileSocket:
         self._ino = None
         self.check_fds()
 
+
     def _get_proc_name(self):
         """
           Get the process name of the provided PID.
@@ -37,7 +39,7 @@ class FileSocket:
         """
         path = "/proc/{}/comm".format(self.pid)
         with open(path) as file:
-            return file.readline().strip("\n")
+            return file.readline()
 
     @staticmethod
     def _reverse(value, step=2):
@@ -77,7 +79,10 @@ class FileSocket:
           @param path: The /proc/net/ file to parse.
           :return: Destination address, source address, socket status and uid.
         """
-        sock_state = {0x01: "(Established)", 0x0A: "(Listen)"}
+        sock_state = {0x01: "\033[0;32m(Established)\033[0;0m",
+                      0x0A: "\033[0;36m(Listen)\033[0;0m",
+                      0x07: "\033[0;31m(Unconnected)\033[0;0m"}
+
         with open(path) as file:
 
             for line in file.readlines():
@@ -113,11 +118,14 @@ class FileSocket:
           :return:
         """
         dest, src, state, uid = data
-        print("\n[*] Process name: {0}\tPID: {1} \tUID: {2}\tInode: {3}".format(self._get_proc_name(),
-                                                                                self.pid,
-                                                                                uid,
-                                                                                self._ino))
-        print("\t[{0}] {1} {2:->10s}> {3} {4}".format(proto, src, "", dest, state))
+        
+        print("\n\033[1;32m[*]\033[0;0m Process name:", self._get_proc_name(), end="")
+        print("\tPID:", self.pid, end="")
+
+        print("\tUID:", uid, end="")
+        print("\tInode:", self._ino)
+
+        print("\t\033[1;36m[{0}]\033[0;0m {1} {2:->10s}> {3} {4}".format(proto, src, "", dest, state))
 
     def get_ip_and_port(self, address):
         """
@@ -244,9 +252,40 @@ class FileSocket:
                 sys.exit()
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: {} [pid]".format(sys.argv[0]), file=sys.stderr)
-        sys.exit(0)
+def get_max_pid():
+    """
+        Return the maximum allowed PIDs.
+    """
+    with open("/proc/sys/kernel/pid_max", 'r') as file:
+        return file.readline()
 
-    FileSocket(sys.argv[1])
+
+def get_pids():
+    """
+        Return all the PIDs.
+    """
+    pid_regex = re.compile("[0-9]{1,%d}"% len(get_max_pid()))
+
+    # Iterate through all the directories found in '/proc'
+    for file in next(os.walk("/proc"))[1]:
+        if re.match(pid_regex, file):
+            yield file
+
+
+def recursive_search():
+    for pid in get_pids():
+       FileSocket(pid)
+
+
+if __name__ == "__main__":
+
+    if len(sys.argv) == 1:
+        recursive_search()
+
+    elif len(sys.argv) == 2:
+        if sys.argv[1] == "-h":
+            print("Usage: {} [pid]".format(sys.argv[0]), file=sys.stderr)
+            sys.exit(0)
+        else:
+            FileSocket(sys.argv[1])
+
