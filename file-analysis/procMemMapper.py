@@ -134,7 +134,7 @@ def read_map_file(proc_map_file):
 
 
 if __name__ == '__main__':
-    if (len(sys.argv) > 2) or (len(sys.argv) < 2):
+    if len(sys.argv) != 2:
         print("Usage: {} [pid]".format(sys.argv[0]))
         sys.exit(22)
 
