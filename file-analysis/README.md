@@ -104,7 +104,7 @@ $ getProcSocketInfo.py [pid]
 _Recursive_
 
 ```
-$ getProcSocketInfo.py [pid]
+$ getProcSocketInfo.py
 
 [*] Process name: xxxxxxx PID: dddd    UID: dddd   Inode: dddd
   [{(TCP6, TCP), (UDP6, UDP), (UDPLITE6, UDPLITE)}] <Source>:<Port> ----------> <Destination>:<Port> ({Established, Listenning, Unconnected})
