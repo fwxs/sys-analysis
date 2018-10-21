@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import argparse
 import binascii
 import re
@@ -28,13 +27,11 @@ class EtherEncode(object):
         self._src = self._setMAC(src)
         self._proto = struct.pack("!H", proto)
 
-
     def _setMAC(self, mac):
         """
             Returns a byte encoded MAC Address if it's a string, otherwise sets its value.
         """
         return self.encodeMAC(mac) if (mac is not None) and (not isinstance(mac, bytes)) else mac
-
 
     def isValidMAC(self, mac):
         """
@@ -51,7 +48,6 @@ class EtherEncode(object):
 
         return False
 
-
     def encodeMAC(self, mac):
         """ Transforms a string MAC Address to it's bytes form. """
         if not self.isValidMAC(mac):
@@ -61,20 +57,17 @@ class EtherEncode(object):
         # Returns a 'bytes' MAC address (\xff\xff\xff\xff\xff\xff)
         return binascii.unhexlify(mac.replace(":", ""))
 
-
     def __str__(self):
         """
             Return a string representation of the Ethernet packet.
         """
         return "Dst MAC: {0} Src MAC: {1} Proto: {2}".format(self._dst, self._src, self._proto)
 
-
     def __bytes__(self):
         """
             Returns a bytes representation of the packet.
         """
         return self._dst + self._src + self._proto
-
 
     def __add__(self, other):
         """
@@ -86,23 +79,19 @@ class EtherEncode(object):
 
 class ARPEncode(EtherEncode):
     """ Creates an ARP packet. """
-    def __init__(self, sMAC, sIP, dMAC, dIP, hwtype=0x001, pType=0x0800, hwsize=0x06, psize=0x04, opcode=0x0001):
+    def __init__(self, sMAC, sIP, dMAC, dIP, opcode=0x0001):
         """ Sets the packet values.
-        @param hwType: L2 protocol type (0x001 = Ethernet).
-        @param pType: Upper protocol type (0x0800 = IPv4).
-        @param hwsize: L2 address length, MAC address has 6 octects in the form 'ff:ff:ff:ff:ff:ff'.
-        @param psize: Upper protocol address length, IPv4 has 4 octects '0.0.0.0'.
-        @param opcode: Type of operation to be performed, 1 for request and 2 for reply.
         @param sMAC: Origin MAC address.
         @param sIP: Origin IP address.
         @param dMAC: Destination MAC address.
         @param dIP: Destination IP address.
+        @param opcode: Type of operation to be performed, 1 for request and 2 for reply.
         """
         # ARP packet first half.
-        self._hwtype = hwtype
-        self._pType = pType
-        self._hwsize = hwsize
-        self._psize = psize
+        self._hwtype = 0x001
+        self._pType = 0x0800
+        self._hwsize = 0x06
+        self._psize = 0x04
         self._opcode = opcode
 
         # If it's not a string Object, encode it.
@@ -112,7 +101,6 @@ class ARPEncode(EtherEncode):
         # Encode the provided IP address to a bytes-like.
         self._sIP = socket.inet_aton(sIP)
         self._dIP = socket.inet_aton(dIP)
-
 
     def __str__(self):
         """
@@ -128,7 +116,6 @@ class ARPEncode(EtherEncode):
                                                                          self._sIP,
                                                                          self._dIP)
         return "{0}{1}".format(firstHalf, secondHalf)
-
 
     def __bytes__(self):
         """
@@ -168,14 +155,13 @@ def getHostMac(targetIP, iface, srcIP, sock=None):
     """
     # Ethernet broadcast packet.
     eth = EtherEncode(dst="ff:ff:ff:ff:ff:ff", src=getInterfaceMAC(iface))
-    ethPacket = eth
 
     # Encode ARP broadcast MAC address.
     dstMAC = eth.encodeMAC("00:00:00:00:00:00")
     # Create ARP packet.
     arpPacket = ARPEncode(eth._src, srcIP, dstMAC, targetIP)
 
-    packet = ethPacket + arpPacket
+    packet = eth + arpPacket
 
     try:
         if sock is None:
