@@ -16,7 +16,7 @@ optional arguments:
   -t IP                Target IP
   -s IP                IP address to spoof (e.g Other host)
   --interval INTERVAL  Intervals of seconds at which to poison the target ARP
-                       cache (Defaults 20)_.
+                       cache (Defaults 20).
 ```
 
 ## Output
